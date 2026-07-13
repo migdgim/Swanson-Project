@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Dati e cache (riproducibili da codice, non versionati)
+engine/data/
+*.sqlite
+*.sqlite3
+*.db
+*.faiss
+*.index
+
+# Segreti
+.env
+.env.local
+*.key
+
+# Node / Next (web/)
+node_modules/
+.next/
+out/
+web/.env*.local
+
+# Obsidian export locale
+export_obsidian/
+.obsidian/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Claude Code (locale)
+.claude/settings.local.json

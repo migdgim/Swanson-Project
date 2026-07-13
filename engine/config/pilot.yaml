@@ -1,0 +1,54 @@
+# Corridoio pilota: disbiosi/microbioma (A) <-> tumorigenesi/immunità antitumorale (C)
+# Prima bozza dei valori; la query MeSH definitiva si rifinisce in S0.
+# I parametri NON vanno mai hardcoded nel codice: si leggono da qui.
+
+corridor:
+  id: microbiome_cancer
+  name: "Disbiosi/microbioma <-> tumorigenesi e immunità antitumorale"
+  A:
+    label: "disbiosi / microbioma intestinale"
+    mesh_query: '("Dysbiosis"[Mesh] OR "Gastrointestinal Microbiome"[Mesh])'
+  C:
+    label: "tumorigenesi / immunità antitumorale"
+    mesh_query: '("Neoplasms"[Mesh] OR "Carcinogenesis"[Mesh])'
+
+# Insieme dei B "noti" per il test di CLOSED DISCOVERY (S1).
+# Se il sistema non ne ritrova >= 5, la pipeline è rotta: FERMARSI e segnalare.
+known_b_terms:
+  - { label: "butirrato / SCFA",           hint: "Butyrates; Fatty Acids, Volatile" }
+  - { label: "LPS (lipopolisaccaride)",    hint: "Lipopolysaccharides" }
+  - { label: "TLR4",                       hint: "Toll-Like Receptor 4" }
+  - { label: "IL-6",                       hint: "Interleukin-6" }
+  - { label: "TNF-alfa",                   hint: "Tumor Necrosis Factor-alpha" }
+  - { label: "Treg",                       hint: "T-Lymphocytes, Regulatory" }
+  - { label: "permeabilità intestinale",   hint: "Permeability; barriera intestinale" }
+
+# Finestre temporali del TIME-SLICING (S2). Separazione DEV/TEST non aggirabile dal codice.
+time_slicing:
+  dev:                                   # QUI e solo qui si tarano soglie e metriche
+    graph_max_date: "2010-12-31"         # grafo costruito solo con paper <= questa data
+    eval_window: ["2011-01-01", "2015-12-31"]
+  test:                                  # si esegue UNA VOLTA SOLA, a parametri congelati
+    graph_max_date: "2015-12-31"
+    eval_window: ["2016-01-01", "2025-12-31"]
+  # Terzo asse temporale (opzionale — "semplice ora, complicabile dopo").
+  # Decommentare per attivare una finestra intermedia di validazione.
+  # val:
+  #   graph_max_date: "2013-12-31"
+  #   eval_window: ["2014-01-01", "2018-12-31"]
+
+# Ingest (S0)
+ingest:
+  retmax: 5000            # tetto abstract per il corpus pilota
+  min_year: 1990
+  api_rate_per_sec: 10    # con API key NCBI (3 senza)
+
+# Ranking dei B (S2/S3)
+ranking:
+  df_min: 5               # scarta i termini troppo rari (rumore da singolo paper)
+  df_max_ratio: 0.25      # scarta i termini troppo generici (stopword di dominio)
+  metrics: ["tfidf", "pmi"]   # metriche di specificità da confrontare sul DEV set
+  top_k: [10, 25, 50]
+
+# Riproducibilità: seed fisso ovunque ci sia stocasticità
+seed: 42

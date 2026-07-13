@@ -1,0 +1,46 @@
+[project]
+name = "swanson-lbd"
+version = "0.0.1"
+description = "Literature-Based Discovery engine (Swanson ABC model) for biomedical literature"
+requires-python = ">=3.11"
+# Dipendenze runtime per S0-S2. NESSUNA dipendenza nuova senza conferma del committente.
+dependencies = [
+  "biopython>=1.83",     # NCBI E-utilities (Entrez)
+  "requests>=2.31",      # PubTator3 / HTTP
+  "networkx>=3.2",       # grafo in-memory
+  "pyyaml>=6.0",         # config
+  "python-dotenv>=1.0",  # segreti da .env
+  "anthropic>=0.40",     # estrazione relazioni LLM (fallback)
+]
+
+[project.optional-dependencies]
+# Semantica (S3): dipendenze pesanti (torch). Installare SOLO quando serve.
+semantic = [
+  "torch>=2.2",
+  "transformers>=4.40",
+  "adapters>=0.2",       # SPECTER2 è distribuito come adapter
+  "faiss-cpu>=1.8",
+]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+  "mypy>=1.10",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
