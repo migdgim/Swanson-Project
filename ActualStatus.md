@@ -18,9 +18,13 @@ progetto (DesignArchitecture.md §9), è dichiarato **non funzionante su questo 
 
 ## Esito S2 — time-slicing (verdetto FAIL, onesto)
 
-TEST P@10: **PMI 0.700 vs frequenza 0.900** → il modello non aggiunge valore oltre la frequenza. **Due cause reali:**
-1. **Finestra DEV (≤2010) strutturalmente vuota sul lato A.** I descrittori MeSH del microbioma ("Gastrointestinal Microbiome", "Dysbiosis") sono entrati in MeSH ~2012-2014: corridoio A = **2 paper ≤2010**, 152 ≤2015. N non tarabile → default N=1 → hit banale → la frequenza domina.
-2. **Grafo di sola co-occorrenza:** senza il layer relazionale reale (SemMedDB o estrazione LLM grounded) non c'è un segnale di specificità che batta la frequenza. È la tesi stessa del progetto: serve un filtro più intelligente.
+**Prima esecuzione** (finestre DEV ≤2010 / TEST ≤2015): FAIL, ma confuso da un problema strutturale — la DEV era **vuota sul lato A** (i descrittori MeSH del microbioma sono entrati in MeSH ~2012-2014: corridoio A = 2 paper ≤2010).
+
+**Seconda esecuzione** (finestre corrette DEV ≤2018 / TEST ≤2021, A=376/607 pre-cutoff — valide): **FAIL pulito**. TEST P@10: **PMI 0.100 vs frequenza 0.800**. Non è più un artefatto: la co-occorrenza nuda con metrica di specificità **non batte la frequenza**.
+
+Interpretazione onesta:
+1. Il **grafo di sola co-occorrenza** non offre un segnale che batta la frequenza. Serve il layer relazionale reale (estrazione LLM grounded / SemMedDB).
+2. Sottigliezza metodologica: con hit=N≥1 la frequenza è quasi tautologicamente "hit" (i termini frequenti persistono). La definizione di hit / il task (valutazione closed vs open discovery) andrà raffinata — decisione del committente.
 
 Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacking, vietato dai principi).
 
@@ -63,14 +67,14 @@ Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacki
 
 Il gate S2 blocca S3. Per sbloccare servono scelte tue, in ordine di leva:
 
-1. **Correggere le finestre di time-slicing** (config `time_slicing`): con vocabolario MeSH post-2012, DEV ≤2010 è invalido. Proposta: DEV cutoff ~2018 / eval 2019-2021, TEST cutoff ~2021 / eval 2022-2025. È una decisione metodologica: non l'ho cambiata da solo.
+1. ~~Correggere le finestre di time-slicing~~ **FATTO (2026-07-20)**: DEV ≤2018 / TEST ≤2021. Ha rimosso il confound (DEV vuota) → il FAIL è ora pulito.
 2. **Aggiungere il layer relazionale reale** (la vera leva sul filtro):
-   - **Estrazione LLM grounded** → serve `ANTHROPIC_API_KEY` (+ stima costo su 100 abstract).
+   - **Estrazione LLM grounded** → serve una API key LLM. **Va bene anche Gemini** (task = estrarre relazioni dal testo dell'abstract): richiede una nuova dipendenza (`google-generativeai`) e un'implementazione `RelationSource` LLM, con lo stesso guardrail anti-contaminazione. In alternativa Anthropic (`ANTHROPIC_API_KEY`, dep `anthropic` già presente).
    - **SemMedDB** → serve licenza UMLS (richiesta in parallelo).
-3. **Ingrandire/ribilanciare il corpus** (alzare `per_year_cap`, o restringere il corridoio a finestre dove A esiste).
-4. (Refinement) `first_year` PubDate vs `pdat`; PubTator3 come sorgente entità/relazioni.
+3. **Raffinare la definizione di hit / il task di validazione** (con N≥1 la frequenza è quasi tautologica): valutare open discovery o hit più stringente. Decisione metodologica del committente.
+4. (Refinement) `first_year` PubDate vs `pdat`; PubTator3 come sorgente entità/relazioni; alzare `per_year_cap`.
 
-Finché non decidi 1+2, il verdetto resta FAIL e non si procede a S3/S4/S5.
+Finché non si affronta il punto 2 (+ eventualmente 3), il verdetto resta FAIL e non si procede a S3/S4/S5.
 
 ## Note
 

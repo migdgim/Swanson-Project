@@ -28,12 +28,14 @@ known_b_terms:
 
 # Finestre temporali del TIME-SLICING (S2). Separazione DEV/TEST non aggirabile dal codice.
 time_slicing:
+  # NB: i descrittori MeSH del microbioma sono entrati in MeSH ~2012-2014, quindi
+  # le finestre partono dopo il 2015 (prima il corridoio A e' quasi vuoto). Rivisto 2026-07-20.
   dev:                                   # QUI e solo qui si tarano soglie e metriche
-    graph_max_date: "2010-12-31"         # grafo costruito solo con paper <= questa data
-    eval_window: ["2011-01-01", "2015-12-31"]
+    graph_max_date: "2018-12-31"         # grafo costruito solo con paper <= questa data
+    eval_window: ["2019-01-01", "2021-12-31"]
   test:                                  # si esegue UNA VOLTA SOLA, a parametri congelati
-    graph_max_date: "2015-12-31"
-    eval_window: ["2016-01-01", "2025-12-31"]
+    graph_max_date: "2021-12-31"
+    eval_window: ["2022-01-01", "2025-12-31"]
   # Terzo asse temporale (opzionale — "semplice ora, complicabile dopo").
   # Decommentare per attivare una finestra intermedia di validazione.
   # val:
