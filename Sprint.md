@@ -3,9 +3,9 @@
 > Sprint futuri e task da fare. Caricamento automatico a ogni sessione.
 > **Principio: 1 sprint = 1 sessione** (verticale, autonomamente testabile dal backend).
 > A sprint validato dal committente: marcare `[x]`, datare, spostare in `Sprint_Done.md`.
-> Ultimo aggiornamento: 2026-07-13.
+> Ultimo aggiornamento: 2026-07-20.
 
-**Stato:** fase di **fondazione avviata** (git, struttura monorepo, documentazione riscritta). Progetto Supabase **rinviato a S4** per il limite free-tier (2 progetti già occupati da `guestrace`/`firetrace`). Decisioni esterne pendenti prima di S0-impl: NCBI API key, richiesta UMLS (in parallelo), gestione slot Supabase. Dettaglio in `ActualStatus.md`.
+**Stato:** **S0 in corso.** Ingest scritto e testato (cache SQLite, rate limiter, client E-utilities; 41 test verdi — commit `d0f6e8d`). NCBI API key ottenuta. **Download bloccato dalla network policy dell'ambiente** (egress verso NCBI negato, 403): sbloccare con Custom allowlist `*.ncbi.nlm.nih.gov` + package managers, poi sessione nuova. Progetto Supabase **rinviato a S4** (limite free-tier). Dettaglio e ripartenza in `ActualStatus.md`.
 
 ---
 
@@ -16,14 +16,17 @@
 - [x] `git init`, struttura monorepo (`engine/`, `web/`, `supabase/`), `.gitignore`, `.env.example`
 - [x] Documentazione allineata (AGENTS, Project, DesignArchitecture, Sprint, ActualStatus)
 - [x] `engine/config/pilot.yaml` (query MeSH A/C, B noti, finestre DEV/TEST, parametri)
-- [ ] `pyproject.toml` → creazione venv + install dipendenze runtime (previa conferma)
-- [ ] Client E-utilities (`ingest/entrez_client.py`): API key da `.env`, rate limiting corretto (10 req/s), retry
-- [ ] Cache SQLite (`ingest/cache.py`): schema Tier-1, ogni risposta grezza persistita
-- [ ] Rifinitura query MeSH del corridoio pilota; download ~3–5k abstract del corpus A↔C
+- [x] `pyproject.toml` → venv + install dipendenze runtime — *eseguito 2026-07-20 (`pip install -e "./engine[dev]"`); container effimero → da ri-eseguire ogni sessione, o via setup script*
+- [x] Cache SQLite (`ingest/cache.py`): schema Tier-1, ogni risposta grezza persistita — *scritta e testata (18 test verdi)*
+- [x] Rate limiter (`ingest/rate_limiter.py`): 10 req/s con key, 3 senza — *scritto e testato (5 test verdi); riusabile per PubTator3*
+- [~] Client E-utilities (`ingest/entrez_client.py`): API key da `.env`, rate limiting, retry — *scritto; parsing+orchestrazione testati (18 test). **Layer di rete NON eseguito**: egress NCBI bloccato*
+- [ ] **Sbloccare egress NCBI** (network policy ambiente) → **BLOCCANTE per il download**
+- [ ] Misurare i Count reali (A, C, A∧C per finestra) → decidere `retmax` + campionamento stratificato per anno
+- [ ] Rifinitura query MeSH del corridoio; download ~3–5k abstract del corpus A↔C (`download_corpus` per A e per C)
 - [ ] Ispezione: conteggi per anno, sanity check sul corpus
 
 **Deliverable:** corpus scaricato e cacheato; re-run offline funzionante; report a una riga con i conteggi.
-**Prerequisito bloccante:** NCBI API key nel `.env`.
+**Prerequisito bloccante:** ~~NCBI API key~~ (ottenuta) → **egress di rete verso NCBI abilitato** nell'ambiente.
 **Gate:** stop & report — numeri del corpus.
 
 ---
