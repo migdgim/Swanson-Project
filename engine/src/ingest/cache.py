@@ -248,6 +248,15 @@ class Cache:
         ).fetchall()
         return {str(r["pmid"]) for r in rows}
 
+    def count_corridor_max_year(self, corridor: str, year: int) -> int:
+        """Paper del corridoio con anno <= year (dimensione pre-cutoff per il time-slicing)."""
+        row = self._conn.execute(
+            "SELECT COUNT(*) AS n FROM paper_corridor pc JOIN papers p ON p.pmid = pc.pmid "
+            "WHERE pc.corridor = ? AND p.pub_year IS NOT NULL AND p.pub_year <= ?",
+            (corridor, year),
+        ).fetchone()
+        return int(row["n"])
+
     # --- pipeline_runs --------------------------------------------------
 
     def record_run(
