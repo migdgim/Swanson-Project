@@ -208,6 +208,10 @@ def main() -> int:
         saved = client.fetch_papers(union)
         print(f"[efetch] nuovi paper salvati: {saved}")
 
+        # Provenienza corridoi (per closed discovery A-B-C e time-slicing).
+        for c in corridors:
+            cache.set_corridor(c["name"], c["pmids"])
+
         cache.record_run(
             run_id=str(uuid.uuid4()),
             git_sha=_git_sha(),

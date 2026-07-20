@@ -45,7 +45,7 @@ mypy_path = "src"
 
 # Librerie di terze parti senza stub: trattate come Any, senza inquinare lo strict del nostro codice.
 [[tool.mypy.overrides]]
-module = ["Bio.*", "yaml"]
+module = ["Bio.*", "yaml", "networkx", "networkx.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 disallow_untyped_calls = false

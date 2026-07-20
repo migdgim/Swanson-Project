@@ -8,9 +8,12 @@ corridor:
   A:
     label: "disbiosi / microbioma intestinale"
     mesh_query: '("Dysbiosis"[Mesh] OR "Gastrointestinal Microbiome"[Mesh])'
+    # Descrittori MeSH-ancora del corridoio: esclusi dai candidati B (sarebbero banali).
+    mesh_anchors: ["Dysbiosis", "Gastrointestinal Microbiome", "Microbiota"]
   C:
     label: "tumorigenesi / immunità antitumorale"
     mesh_query: '("Neoplasms"[Mesh] OR "Carcinogenesis"[Mesh])'
+    mesh_anchors: ["Neoplasms", "Carcinogenesis", "Cell Transformation, Neoplastic"]
 
 # Insieme dei B "noti" per il test di CLOSED DISCOVERY (S1).
 # Se il sistema non ne ritrova >= 5, la pipeline è rotta: FERMARSI e segnalare.

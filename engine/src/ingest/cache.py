@@ -73,6 +73,14 @@ CREATE TABLE IF NOT EXISTS eutils_cache (
     response_raw TEXT NOT NULL,
     fetched_at   TEXT NOT NULL
 );
+
+-- Appartenenza di ogni paper ai corridoi (A/C): provenienza dell'esearch, base per
+-- l'ancoraggio A-B-C della closed discovery e per il time-slicing.
+CREATE TABLE IF NOT EXISTS paper_corridor (
+    pmid     TEXT NOT NULL,
+    corridor TEXT NOT NULL,        -- 'A' | 'C'
+    PRIMARY KEY (pmid, corridor)
+);
 """
 
 
@@ -224,6 +232,21 @@ class Cache:
             (lo, hi),
         ).fetchone()
         return int(row["n"])
+
+    # --- paper_corridor -------------------------------------------------
+
+    def set_corridor(self, corridor: str, pmids: list[str]) -> None:
+        with self._tx() as conn:
+            conn.executemany(
+                "INSERT OR IGNORE INTO paper_corridor (pmid, corridor) VALUES (?, ?)",
+                [(p, corridor) for p in pmids],
+            )
+
+    def pmids_in_corridor(self, corridor: str) -> set[str]:
+        rows = self._conn.execute(
+            "SELECT pmid FROM paper_corridor WHERE corridor = ?", (corridor,)
+        ).fetchall()
+        return {str(r["pmid"]) for r in rows}
 
     # --- pipeline_runs --------------------------------------------------
 
