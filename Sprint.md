@@ -3,28 +3,9 @@
 > Sprint futuri e task da fare. Caricamento automatico a ogni sessione.
 > **Principio: 1 sprint = 1 sessione** (verticale, autonomamente testabile dal backend).
 > A sprint validato dal committente: marcare `[x]`, datare, spostare in `Sprint_Done.md`.
-> Ultimo aggiornamento: 2026-07-13.
+> Ultimo aggiornamento: 2026-07-20.
 
-**Stato:** fase di **fondazione avviata** (git, struttura monorepo, documentazione riscritta). Progetto Supabase **rinviato a S4** per il limite free-tier (2 progetti già occupati da `guestrace`/`firetrace`). Decisioni esterne pendenti prima di S0-impl: NCBI API key, richiesta UMLS (in parallelo), gestione slot Supabase. Dettaglio in `ActualStatus.md`.
-
----
-
-## S0 — Fondazioni
-
-**Obiettivo:** scaricare, normalizzare e cacheare il corpus pilota, in modo riproducibile.
-
-- [x] `git init`, struttura monorepo (`engine/`, `web/`, `supabase/`), `.gitignore`, `.env.example`
-- [x] Documentazione allineata (AGENTS, Project, DesignArchitecture, Sprint, ActualStatus)
-- [x] `engine/config/pilot.yaml` (query MeSH A/C, B noti, finestre DEV/TEST, parametri)
-- [ ] `pyproject.toml` → creazione venv + install dipendenze runtime (previa conferma)
-- [ ] Client E-utilities (`ingest/entrez_client.py`): API key da `.env`, rate limiting corretto (10 req/s), retry
-- [ ] Cache SQLite (`ingest/cache.py`): schema Tier-1, ogni risposta grezza persistita
-- [ ] Rifinitura query MeSH del corridoio pilota; download ~3–5k abstract del corpus A↔C
-- [ ] Ispezione: conteggi per anno, sanity check sul corpus
-
-**Deliverable:** corpus scaricato e cacheato; re-run offline funzionante; report a una riga con i conteggi.
-**Prerequisito bloccante:** NCBI API key nel `.env`.
-**Gate:** stop & report — numeri del corpus.
+**Stato:** **S0 completato e validato** (2026-07-20) — ingest del corpus pilota funzionante (4061 paper, 1990–2026, riproducibile offline). Dettaglio in `Sprint_Done.md`. Progetto Supabase **rinviato a S4** per il limite free-tier (2 progetti già occupati da `guestrace`/`firetrace`). Prossimo: **S1**. Decisioni ancora pendenti: richiesta UMLS (in parallelo), scelta modello LLM (in S1, dopo stima costo). Dettaglio in `ActualStatus.md`.
 
 ---
 
@@ -32,6 +13,7 @@
 
 **Obiettivo:** costruire il grafo multi-ontologia e verificare che il sistema ritrovi i B già noti.
 
+- [ ] **Definizione operativa di `first_year`** (nodo/arco): scelta della data (PubDate del fascicolo vs `pdat` E-utilities vs earliest). Emerso in S0: le due date divergono ai bordi (2026 gonfiato dagli "ahead-of-print", 2000 assottigliato). Decisione che condiziona la maschera del time-slicing.
 - [ ] `ingest/pubtator_client.py`: entità normalizzate + relazioni PubTator3 (cacheate)
 - [ ] Nodi MeSH per i concetti non coperti (Treg, permeabilità intestinale, ...)
 - [ ] `graph/`: costruzione `MultiDiGraph`, nodi tipizzati, edges pesati con PMID + `first_year`
