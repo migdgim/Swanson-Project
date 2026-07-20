@@ -32,4 +32,35 @@
 
 ---
 
+## S1-rel / S3-prep — Layer relazionale LLM grounded ✅ (2026-07-21)
+
+**Obiettivo:** introdurre l'estrazione di relazioni *grounded* dagli abstract dietro
+`RelationSource`, con guardrail anti-contaminazione, e stimarne costo/fattibilità prima di
+estendere al corpus (leva per battere il baseline a frequenza, S2 = FAIL).
+
+- [x] Ripristino ambiente locale (Mac): Homebrew + Python 3.12, venv, dipendenze runtime; stato riprodotto (S1 **5/7 PASS**, S2 **FAIL** PMI 0.100 vs freq 0.800). Cache 4061 paper rigenerata sul disco.
+- [x] Dipendenza `google-generativeai` (approvata dal committente; nota: deprecata a favore di `google-genai`).
+- [x] `relations/base.py`: tipi `Relation`/`Usage`/`ExtractionResult` + Protocol `RelationSource` (contratto `DesignArchitecture.md §7`).
+- [x] `relations/prompt.py`: prompt di estrazione **grounded** versionato (`v1`); guardrail esplicito — mai giudizio di plausibilità/novità.
+- [x] `relations/gemini_source.py`: `GeminiRelationSource` — temp 0, cache su disco (`llm_extractions`, chiave su prompt+modello), rate limiting, token misurati dall'API.
+- [x] `relations/estimate_cost.py`: stima su **100 abstract** reali.
+- [x] `relations/extract_corpus.py`: estrattore **riprendibile** (cache-first, stop pulito su quota); scope default = pre-cutoff ≤2021.
+- [x] `ingest/cache.py`: metodi `sample_abstracts`, `get_paper_text`, `get/put_llm_extraction`.
+- [x] Limiti free-tier **verificati** in dashboard e messi nel config (no placeholder).
+
+**Numeri della stima (eseguiti, non simulati) — modello `gemini-flash-lite-latest` (= Gemini 3.1 Flash Lite), temp 0:**
+- 100/100 estrazioni, 0 errori; **410 relazioni** (97/100 abstract con ≥1); 2 parse falliti (2%).
+- Token misurati: **537 in / 374 out / 910 tot per abstract**.
+- Estrapolazione corpus pre-cutoff (2397 paper ≤2021): ~1,3M in + ~0,9M out token.
+- **Costo: $0** (free tier). Riferimento a pagamento ~$0,72 (listino DA VERIFICARE).
+- Limiti free reali: **RPM 15 · TPM 250K · RPD 500** → estrazione pre-cutoff ~5 giorni a scatti, riprendibile.
+
+**Guardrail rispettato:** l'LLM estrae solo triple presenti nel testo, con frase di evidenza verbatim; nessun giudizio A–B–C. Verificato a campione.
+
+**Verifiche backend verdi:** `ruff` pulito, `mypy --strict` (26 file), 18 test.
+
+**NON fatto (prossimo sprint):** normalizzazione entità estratte → nodi grafo; ricostruzione grafo relazionale; **ri-esecuzione S2** col nuovo layer.
+
+---
+
 *Sprint successivi da fare: vedi `Sprint.md`.*

@@ -17,11 +17,13 @@
 - [ ] `ingest/pubtator_client.py`: entità normalizzate + relazioni PubTator3 (cacheate)
 - [ ] Nodi MeSH per i concetti non coperti (Treg, permeabilità intestinale, ...)
 - [ ] `graph/`: costruzione `MultiDiGraph`, nodi tipizzati, edges pesati con PMID + `first_year`
-- [ ] `RelationSource` (interfaccia) + implementazione **fallback** (co-occorrenza + PubTator3 rel)
-- [ ] **Stima di costo LLM su 100 abstract** → report costo per l'intero corpus → scelta modello (Haiku/Sonnet)
-- [ ] Estrazione LLM grounded delle relazioni (con guardrail anti-contaminazione), cacheata
-- [ ] `discovery/closed_discovery.py`: dati A e C, ritrova i B
-- [ ] Test: closed discovery ritrova ≥ 5 dei 7 B noti
+- [x] `RelationSource` (interfaccia) + implementazione LLM grounded (Gemini) — 2026-07-21. (Fallback co-occorrenza già in `graph/build_graph.py`; PubTator3 rimandato.)
+- [x] **Stima di costo LLM su 100 abstract** → 910 tok/abstract, $0 free tier; modello scelto: Gemini 3.1 Flash Lite — 2026-07-21
+- [~] Estrazione LLM grounded delle relazioni (con guardrail anti-contaminazione), cacheata — runner pronto e **avviato** (pre-cutoff ≤2021, riprendibile); in corso
+- [x] `discovery/closed_discovery.py`: dati A e C, ritrova i B — 2026-07-20
+- [x] Test: closed discovery ritrova ≥ 5 dei 7 B noti (**5/7 PASS**) — 2026-07-20
+
+**Prossimo sprint (post-estrazione):** normalizzazione entità estratte → nodi grafo; grafo relazionale (`MultiDiGraph`); **ri-esecuzione S2** col nuovo layer per vedere se batte la frequenza.
 
 **Gate BLOCCANTE:** se ritrova < 5 B noti, **fermati e riportalo** — non proseguire a S2.
 

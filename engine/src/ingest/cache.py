@@ -257,6 +257,66 @@ class Cache:
         ).fetchone()
         return int(row["n"])
 
+    # --- abstracts (per estrazione relazioni) ---------------------------
+
+    def get_paper_text(self, pmid: str) -> tuple[str | None, str | None] | None:
+        """(title, abstract) del paper, o None se assente."""
+        row = self._conn.execute(
+            "SELECT title, abstract FROM papers WHERE pmid = ?", (pmid,)
+        ).fetchone()
+        if row is None:
+            return None
+        return (row["title"], row["abstract"])
+
+    def sample_abstracts(self, *, limit: int) -> list[tuple[str, str | None, str]]:
+        """Campione deterministico di (pmid, title, abstract) con abstract non vuoto.
+
+        Ordinato per pmid: riproducibile e indipendente dall'ordine di inserimento.
+        """
+        rows = self._conn.execute(
+            "SELECT pmid, title, abstract FROM papers "
+            "WHERE abstract IS NOT NULL AND abstract != '' ORDER BY pmid LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [(str(r["pmid"]), r["title"], str(r["abstract"])) for r in rows]
+
+    # --- llm_extractions (cache estrazioni LLM) -------------------------
+
+    def get_llm_extraction(self, *, prompt_hash: str, model: str) -> str | None:
+        """Risposta LLM cacheata per (prompt_hash, model), o None. Re-run offline."""
+        row = self._conn.execute(
+            "SELECT response_json FROM llm_extractions WHERE prompt_hash = ? AND model = ?",
+            (prompt_hash, model),
+        ).fetchone()
+        return None if row is None else str(row["response_json"])
+
+    def put_llm_extraction(
+        self,
+        *,
+        pmid: str,
+        model: str,
+        prompt_hash: str,
+        response_json: str,
+        created_at: str,
+    ) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT INTO llm_extractions "
+                "(pmid, model, prompt_hash, response_json, created_at) VALUES (?, ?, ?, ?, ?)",
+                (pmid, model, prompt_hash, response_json, created_at),
+            )
+
+    def count_llm_extractions(self, model: str | None = None) -> int:
+        if model is None:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_extractions"
+            ).fetchone()
+        else:
+            row = self._conn.execute(
+                "SELECT COUNT(*) AS n FROM llm_extractions WHERE model = ?", (model,)
+            ).fetchone()
+        return int(row["n"])
+
     # --- pipeline_runs --------------------------------------------------
 
     def record_run(

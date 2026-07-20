@@ -1,7 +1,7 @@
 # ActualStatus — Swanson Project
 
 > Stato corrente per allineare le sessioni senza riesaminare il codice. Leggere **per primo**, insieme a `Sprint.md`.
-> Ultimo aggiornamento: 2026-07-20.
+> Ultimo aggiornamento: 2026-07-21.
 
 ## Dove siamo
 
@@ -28,7 +28,16 @@ Interpretazione onesta:
 
 Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacking, vietato dai principi).
 
-## Fatto in questa sessione (2026-07-20)
+## Fatto in questa sessione (2026-07-21) — layer relazionale LLM + ripresa locale
+
+- **Ambiente locale (Mac):** Homebrew + Python 3.12, venv, dipendenze runtime + `google-generativeai` (approvata). Cache 4061 paper **rigenerata sul disco del committente** (persistente). Pipeline riprodotta: **S1 5/7 PASS, S2 FAIL** (identici allo stato registrato).
+- **`relations/` (nuovo modulo):** interfaccia `RelationSource` (Protocol, `DesignArchitecture.md §7`) + `GeminiRelationSource` grounded (temp 0, cache su disco `llm_extractions`, rate limiting, token misurati). Prompt versionato `v1` con **guardrail anti-contaminazione** (solo estrazione, mai plausibilità). Runner `estimate_cost.py` e `extract_corpus.py` (riprendibile).
+- **Stima costo su 100 abstract (eseguita):** 410 relazioni, 910 token/abstract, **$0 sul free tier**. Estrazione pre-cutoff (2397 paper ≤2021) ~5 giorni a scatti, riprendibile. Dettaglio in `Sprint_Done.md`.
+- **Modello LLM scelto:** `gemini-flash-lite-latest` (= Gemini 3.1 Flash Lite): unico free con RPD alto (500). `gemini-1.5/2.5-*` ritirati/non accessibili a key nuove. Alias: da fissare per riproducibilità piena prima del run intero.
+- **Limiti free-tier verificati** (dashboard AI Studio, 2026-07-21): RPM 15 · TPM 250K · RPD 500 → nel config (client throttle a 12 rpm per margine).
+- **In corso/da fare:** estrazione relazioni sul pre-cutoff, poi **normalizzazione entità → grafo → ri-esecuzione S2**.
+
+## Fatto nella sessione precedente (2026-07-20)
 
 - Ambiente: venv + dipendenze runtime installate (biopython, requests, networkx, pyyaml, python-dotenv, anthropic).
 - `engine/src/ingest/cache.py`: cache SQLite Tier-1 (schema `DesignArchitecture.md §6.1`) + `eutils_cache` per il re-run offline.
@@ -60,7 +69,7 @@ Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacki
 ## Decisioni esterne PENDENTI (dal committente)
 
 1. **UMLS/SemMedDB** — avviare la richiesta licenza in parallelo (non blocca: si parte col fallback).
-2. **LLM estrazione** — modello scelto dopo **stima di costo su 100 abstract** (in S1). L'`ANTHROPIC_API_KEY` non è ancora impostata.
+2. ~~**LLM estrazione** — modello scelto dopo stima di costo su 100 abstract~~ **DECISO (2026-07-21):** Gemini 3.1 Flash Lite (free tier, $0), key AI Studio impostata. Resta da: fissare l'alias su un modello pinnato per riproducibilità prima del run sul corpus intero.
 3. **Slot Supabase** — decidere upgrade Pro (~$25/mese) vs riorganizzazione; serve solo da **S4**.
 
 ## Prossimo passo — DECISIONE DEL COMMITTENTE (S2 non passato, S3 bloccato)

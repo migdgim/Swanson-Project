@@ -51,6 +51,31 @@ ingest:
   max_year: 2026          # estremo superiore della finestra di ingest
   api_rate_per_sec: 10    # con API key NCBI (3 senza)
 
+# Estrazione relazioni grounded via LLM (S3-prep). Guardrail: SOLO estrazione dal testo,
+# mai giudizio di plausibilità (anti-contaminazione del time-slicing).
+relations:
+  provider: gemini
+  model: gemini-flash-lite-latest  # tier 'lite' scelto dal committente; 2.5-flash-lite non
+                                   # accessibile a key nuove (404), questo è il flash-lite attuale.
+                                   # Alias: per riproducibilità piena valutare un pin (es.
+                                   # gemini-3.1-flash-lite-preview) prima del run sul corpus.
+  temperature: 0.0               # determinismo
+  max_output_tokens: 2048
+  prompt_version: v1             # deve combaciare con relations/prompt.py (entra nella cache)
+  sample_size: 100               # abstract per la stima costo/fattibilità (S3-prep)
+  extract_max_year: 2021         # estrai solo il pre-cutoff (grafo predittivo S2); 0 = tutto
+  # LIMITI free-tier VERIFICATI dalla dashboard AI Studio (2026-07-21, key 'Swanson Project'),
+  # modello Gemini 3.1 Flash Lite (= alias gemini-flash-lite-latest). Il free tier costa $0:
+  # il listino sotto serve solo come riferimento "se un giorno passassi a pagamento".
+  pricing_usd_per_million:
+    input: 0.10                  # riferimento a pagamento (DA VERIFICARE sul listino ufficiale)
+    output: 0.40                 # (DA VERIFICARE sul listino ufficiale)
+  free_tier:
+    rpm: 15                      # requests/minute (verificato)
+    rpd: 500                     # requests/day (verificato) -> collo di bottiglia reale
+    tpm: 250000                  # tokens/minute (verificato)
+  client_rpm: 12                 # throttle del client: sotto il limite RPM per margine di sicurezza
+
 # Ranking dei B (S2/S3)
 ranking:
   df_min: 5               # scarta i termini troppo rari (rumore da singolo paper)
