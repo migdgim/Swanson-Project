@@ -39,8 +39,11 @@ time_slicing:
 
 # Ingest (S0)
 ingest:
-  retmax: 5000            # tetto abstract per il corpus pilota
+  sampling: per_year      # per_year = tetto per anno (bilancia DEV/TEST) | flat = un solo taglio
+  per_year_cap: 80        # max abstract per anno E per corridoio (solo se sampling=per_year)
+  retmax: 5000            # tetto per corridoio se sampling=flat (recency-biased: sconsigliato)
   min_year: 1990
+  max_year: 2026          # estremo superiore della finestra di ingest
   api_rate_per_sec: 10    # con API key NCBI (3 senza)
 
 # Ranking dei B (S2/S3)

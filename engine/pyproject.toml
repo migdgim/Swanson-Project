@@ -41,6 +41,14 @@ target-version = "py311"
 [tool.mypy]
 python_version = "3.11"
 strict = true
+mypy_path = "src"
+
+# Librerie di terze parti senza stub: trattate come Any, senza inquinare lo strict del nostro codice.
+[[tool.mypy.overrides]]
+module = ["Bio.*", "yaml"]
+ignore_missing_imports = true
+follow_imports = "skip"
+disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
