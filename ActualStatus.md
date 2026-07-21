@@ -35,7 +35,8 @@ Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacki
 - **Stima costo su 100 abstract (eseguita):** 410 relazioni, 910 token/abstract, **$0 sul free tier**. Estrazione pre-cutoff (2397 paper ≤2021) ~5 giorni a scatti, riprendibile. Dettaglio in `Sprint_Done.md`.
 - **Modello LLM scelto:** `gemini-flash-lite-latest` (= Gemini 3.1 Flash Lite): unico free con RPD alto (500). `gemini-1.5/2.5-*` ritirati/non accessibili a key nuove. Alias: da fissare per riproducibilità piena prima del run intero.
 - **Limiti free-tier verificati** (dashboard AI Studio, 2026-07-21): RPM 15 · TPM 250K · RPD 500 → nel config (client throttle a 12 rpm per margine).
-- **In corso/da fare:** estrazione relazioni sul pre-cutoff, poi **normalizzazione entità → grafo → ri-esecuzione S2**.
+- **Normalizzazione (de-risking, scelta MeSH):** costruito il layer menzione→descrittore MeSH (`relations/normalize.py`), i sinonimi/entry-terms MeSH via Entrez cacheati (`relations/mesh_synonyms.py`, tabella `mesh_synonyms`) e un report di copertura (`relations/coverage_report.py`). **Risultato onesto** (su 618 paper parziali, pmid vecchi, non rappresentativi): i sinonimi funzionano dove servono (IL-6 2/4→3/4, Treg 0/1→1/1); TNF-α resta 0/5 ma **per lo più correttamente** — 3/5 sono tag MeSH senza relazione affermata nell'abstract (il *filtro* che scarta la co-occorrenza nuda, cioè l'effetto voluto), 2/5 sono un limite residuo del match su acronimi nudi (TNF/LPS). Approccio giudicato **sano**; nessuna ottimizzazione forzata del matcher (sarebbe p-hacking sul campione).
+- **In corso/da fare:** completare l'estrazione pre-cutoff, poi **costruzione grafo relazionale → ri-esecuzione S2** (verdetto vero solo a copertura sufficiente).
 
 ## Fatto nella sessione precedente (2026-07-20)
 

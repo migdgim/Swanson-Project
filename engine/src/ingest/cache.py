@@ -81,6 +81,15 @@ CREATE TABLE IF NOT EXISTS paper_corridor (
     corridor TEXT NOT NULL,        -- 'A' | 'C'
     PRIMARY KEY (pmid, corridor)
 );
+
+-- Sinonimi/entry-terms MeSH per descrittore (da db=mesh, cacheati): servono a mappare
+-- le menzioni abbreviate estratte dall'LLM (es. "TNF-alpha") al descrittore ("Tumor
+-- Necrosis Factor-alpha"), preservando lo spazio nodi MeSH nel confronto S2.
+CREATE TABLE IF NOT EXISTS mesh_synonyms (
+    descriptor    TEXT PRIMARY KEY,
+    synonyms_json TEXT NOT NULL,     -- list[str], include il descrittore stesso
+    fetched_at    TEXT NOT NULL
+);
 """
 
 
@@ -306,6 +315,21 @@ class Cache:
                 (pmid, model, prompt_hash, response_json, created_at),
             )
 
+    def iter_llm_extractions(self, model: str) -> list[tuple[str, str]]:
+        """(pmid, response_json) di tutte le estrazioni per un modello."""
+        rows = self._conn.execute(
+            "SELECT pmid, response_json FROM llm_extractions WHERE model = ? ORDER BY pmid",
+            (model,),
+        ).fetchall()
+        return [(str(r["pmid"]), str(r["response_json"])) for r in rows]
+
+    def get_raw_article(self, pmid: str) -> str | None:
+        """`raw_json` grezzo del paper (per estrarne i descrittori MeSH), o None."""
+        row = self._conn.execute(
+            "SELECT raw_json FROM papers WHERE pmid = ?", (pmid,)
+        ).fetchone()
+        return None if row is None else str(row["raw_json"])
+
     def count_llm_extractions(self, model: str | None = None) -> int:
         if model is None:
             row = self._conn.execute(
@@ -316,6 +340,25 @@ class Cache:
                 "SELECT COUNT(*) AS n FROM llm_extractions WHERE model = ?", (model,)
             ).fetchone()
         return int(row["n"])
+
+    # --- mesh_synonyms --------------------------------------------------
+
+    def get_mesh_synonyms(self, descriptor: str) -> list[str] | None:
+        row = self._conn.execute(
+            "SELECT synonyms_json FROM mesh_synonyms WHERE descriptor = ?", (descriptor,)
+        ).fetchone()
+        if row is None:
+            return None
+        val = json.loads(row["synonyms_json"])
+        return [str(x) for x in val] if isinstance(val, list) else None
+
+    def put_mesh_synonyms(self, descriptor: str, synonyms: list[str], fetched_at: str) -> None:
+        with self._tx() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO mesh_synonyms (descriptor, synonyms_json, fetched_at) "
+                "VALUES (?, ?, ?)",
+                (descriptor, json.dumps(synonyms, ensure_ascii=False), fetched_at),
+            )
 
     # --- pipeline_runs --------------------------------------------------
 
