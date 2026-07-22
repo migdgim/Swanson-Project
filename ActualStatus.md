@@ -70,7 +70,7 @@ Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacki
 ## Decisioni esterne PENDENTI (dal committente)
 
 1. **UMLS/SemMedDB** — avviare la richiesta licenza in parallelo (non blocca: si parte col fallback).
-2. ~~**LLM estrazione** — modello scelto dopo stima di costo su 100 abstract~~ **DECISO (2026-07-21):** Gemini 3.1 Flash Lite (free tier, $0), key AI Studio impostata. Resta da: fissare l'alias su un modello pinnato per riproducibilità prima del run sul corpus intero.
+2. ~~**LLM estrazione** — modello scelto + alias pinnato~~ **CHIUSO (2026-07-22):** Gemini 3.1 Flash Lite (free tier, $0). **Alias pinnato** su `gemini-3.1-flash-lite` (versione `3.1-flash-lite-05-2026`) in `pilot.yaml` **e** in `.env` (`GEMINI_MODEL`). Motivo: l'alias mobile `gemini-flash-lite-latest` è **driftato 3.1→3.5** tra il 21 e il 22 luglio (verificato: 6 triple con 3.1 vs 1 con 3.5 sullo stesso abstract) → con un run multi-giorno avrebbe mescolato due modelli. Le 991 estrazioni del 21/07 (erano 3.1, provate identiche al pin) sono state **rietichettate in cache** da `gemini-flash-lite-latest` a `gemini-3.1-flash-lite` (991/991, cache-hit confermati; backup `engine/data/cache.sqlite.bak-prepin`). Corpus ora uniforme e riproducibile.
 3. **Slot Supabase** — decidere upgrade Pro (~$25/mese) vs riorganizzazione; serve solo da **S4**.
 
 ## Prossimo passo — DECISIONE DEL COMMITTENTE (S2 non passato, S3 bloccato)
