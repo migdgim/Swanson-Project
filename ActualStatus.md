@@ -1,15 +1,32 @@
 # ActualStatus — Swanson Project
 
 > Stato corrente per allineare le sessioni senza riesaminare il codice. Leggere **per primo**, insieme a `Sprint.md`.
-> Ultimo aggiornamento: 2026-07-21.
+> Ultimo aggiornamento: 2026-07-23.
 
 ## Dove siamo
 
-**S0 validato (2026-07-20). S1 eseguito: gate PASS 5/7. S2 eseguito: verdetto FAIL.**
-Il motore ingest→grafo→closed discovery→time-slicing gira end-to-end e riproducibile,
-ma **sul setup attuale il sistema NON batte il baseline a frequenza**. Come da regola di
-progetto (DesignArchitecture.md §9), è dichiarato **non funzionante su questo setup** e
-**ci si ferma prima di S3**. Servono decisioni del committente (sotto) prima di proseguire.
+**PILOTA CHIUSO (2026-07-23), con conclusione onesta.** Il motore gira end-to-end e
+riproducibile su tutta la pipeline: ingest → grafo → closed discovery → estrazione
+relazionale LLM (2397/2397, grounded) → time-slicing → open discovery. **Verdetto: il
+layer relazionale NON batte il baseline a frequenza in modo dimostrabile su questo corpus.**
+
+Percorso dei verdetti (tutti eseguiti, TEST una volta sola, matching plain uniforme):
+1. **Closed S2, co-occorrenza** (baseline): FAIL — P@10 PMI 0.100 vs freq **0.800**.
+2. **Closed S2, grounding come segnale**: FAIL — grounded 0.000 vs freq **0.800**. La frequenza
+   domina *per tautologia* (hit N≥1 = persistenza dei termini frequenti).
+3. **Open discovery** (reframe anti-tautologia): FAIL ma informativo — grounded **0.200** vs
+   freq **0.300** vs random 0.000. Il reframe abbatte la tautologia (freq 0.800→0.300); il
+   grounded ha segnale **non casuale ma non superiore** alla frequenza. **Sotto-potenziato**
+   (29-38 hit, P@10 rumoroso ±0.1).
+
+**Lettura onesta:** su un campione di 4061 paper il segnale grounded esiste (i suoi top
+candidati — Prebiotics, Bifidobacterium, Melanoma… — sono biologicamente sensati, *come
+osservazione non come metrica*: guardrail rispettato) ma è penalizzato da limiti **noti e
+fixabili** — potenza statistica (più corpus) e copertura del matching menzione→MeSH
+(sinonimi uniformi / PubTator3). Nessun p-hacking: task e verdetti pre-registrati.
+
+**Il pilota si chiude qui** per decisione del committente. Se si riprende, le leve sono in
+"Se si riprende" più sotto.
 
 ## Esito S1 — closed discovery (gate PASS, con riserve)
 
@@ -28,7 +45,15 @@ Interpretazione onesta:
 
 Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacking, vietato dai principi).
 
-## Fatto in questa sessione (2026-07-21) — layer relazionale LLM + ripresa locale
+## Fatto in questa sessione (2026-07-23) — estrazione completa + S2-rerun + open discovery (CHIUSURA)
+
+- **Pin del modello LLM:** `gemini-3.1-flash-lite` (`3.1-flash-lite-05-2026`) in `pilot.yaml` e `.env`. L'alias `-latest` era driftato 3.1→3.5 tra il 21 e il 23/07 → pin per coerenza del corpus. Le 991 estrazioni del 21/07 rietichettate in cache (backup `cache.sqlite.bak-prepin`).
+- **Estrazione completata:** billing Google attivato (€10) → throttle a 60 rpm, no più RPD. **2397/2397** paper pre-cutoff, 0 errori, **8.920 relazioni**. Costo: pochi centesimi.
+- **Grafo relazionale grounded** (`build_graph.py` modalità grounded) + **ri-esecuzione S2** con il grounding come *segnale di ranking* (non filtro) → FAIL (freq tautologica 0.800).
+- **Open discovery time-sliced** (nuovo: `validation/run_open_discovery.py`, `OpenSlice`/`build_open_slices`/`evaluate_open_split`): candidato = mezzo-ponte, hit = chiusura del lato mancante. Reframe **pre-registrato** → FAIL ma informativo (grounded 0.200 vs freq 0.300, tautologia abbattuta).
+- **Verifiche verdi:** ruff, mypy --strict (7 file), 21 test. Vedi `Sprint_Done.md` per i dettagli completi.
+
+## Fatto nella sessione del 2026-07-21 — layer relazionale LLM + ripresa locale
 
 - **Ambiente locale (Mac):** Homebrew + Python 3.12, venv, dipendenze runtime + `google-generativeai` (approvata). Cache 4061 paper **rigenerata sul disco del committente** (persistente). Pipeline riprodotta: **S1 5/7 PASS, S2 FAIL** (identici allo stato registrato).
 - **`relations/` (nuovo modulo):** interfaccia `RelationSource` (Protocol, `DesignArchitecture.md §7`) + `GeminiRelationSource` grounded (temp 0, cache su disco `llm_extractions`, rate limiting, token misurati). Prompt versionato `v1` con **guardrail anti-contaminazione** (solo estrazione, mai plausibilità). Runner `estimate_cost.py` e `extract_corpus.py` (riprendibile).
@@ -70,21 +95,22 @@ Nessun tentativo di "aggiustare" la metrica per forzare un PASS (sarebbe p-hacki
 ## Decisioni esterne PENDENTI (dal committente)
 
 1. **UMLS/SemMedDB** — avviare la richiesta licenza in parallelo (non blocca: si parte col fallback).
-2. ~~**LLM estrazione** — modello scelto + alias pinnato~~ **CHIUSO (2026-07-22):** Gemini 3.1 Flash Lite (free tier, $0). **Alias pinnato** su `gemini-3.1-flash-lite` (versione `3.1-flash-lite-05-2026`) in `pilot.yaml` **e** in `.env` (`GEMINI_MODEL`). Motivo: l'alias mobile `gemini-flash-lite-latest` è **driftato 3.1→3.5** tra il 21 e il 22 luglio (verificato: 6 triple con 3.1 vs 1 con 3.5 sullo stesso abstract) → con un run multi-giorno avrebbe mescolato due modelli. Le 991 estrazioni del 21/07 (erano 3.1, provate identiche al pin) sono state **rietichettate in cache** da `gemini-flash-lite-latest` a `gemini-3.1-flash-lite` (991/991, cache-hit confermati; backup `engine/data/cache.sqlite.bak-prepin`). Corpus ora uniforme e riproducibile.
+2. ~~**LLM estrazione** — modello scelto + alias pinnato~~ **CHIUSO (2026-07-23):** Gemini 3.1 Flash Lite. **Alias pinnato** su `gemini-3.1-flash-lite` (`3.1-flash-lite-05-2026`) in `pilot.yaml` **e** in `.env` (`GEMINI_MODEL`). Motivo: l'alias mobile `gemini-flash-lite-latest` è **driftato 3.1→3.5** tra il 21 e il 23 luglio (verificato: 6 triple con 3.1 vs 1 con 3.5 sullo stesso abstract) → con un run multi-giorno avrebbe mescolato due modelli. Le 991 estrazioni del 21/07 rietichettate in cache (991/991, cache-hit confermati; backup `engine/data/cache.sqlite.bak-prepin`). Billing attivato (€10) per completare l'estrazione senza il tetto RPD. Corpus uniforme e riproducibile.
 3. **Slot Supabase** — decidere upgrade Pro (~$25/mese) vs riorganizzazione; serve solo da **S4**.
 
-## Prossimo passo — DECISIONE DEL COMMITTENTE (S2 non passato, S3 bloccato)
+## Se si riprende (pilota chiuso — leve, in ordine di priorità)
 
-Il gate S2 blocca S3. Per sbloccare servono scelte tue, in ordine di leva:
+Il pilota è chiuso con verdetto FAIL onesto. Le leve provate sono esaurite (co-occorrenza,
+grounding come filtro, grounding come segnale, open discovery: tutte eseguite). Ciò che resta
+NON è più "un'altra metrica" ma **investimenti su dati e copertura**, motivati dai risultati:
 
-1. ~~Correggere le finestre di time-slicing~~ **FATTO (2026-07-20)**: DEV ≤2018 / TEST ≤2021. Ha rimosso il confound (DEV vuota) → il FAIL è ora pulito.
-2. **Aggiungere il layer relazionale reale** (la vera leva sul filtro):
-   - **Estrazione LLM grounded** → serve una API key LLM. **Va bene anche Gemini** (task = estrarre relazioni dal testo dell'abstract): richiede una nuova dipendenza (`google-generativeai`) e un'implementazione `RelationSource` LLM, con lo stesso guardrail anti-contaminazione. In alternativa Anthropic (`ANTHROPIC_API_KEY`, dep `anthropic` già presente).
-   - **SemMedDB** → serve licenza UMLS (richiesta in parallelo).
-3. **Raffinare la definizione di hit / il task di validazione** (con N≥1 la frequenza è quasi tautologica): valutare open discovery o hit più stringente. Decisione metodologica del committente.
-4. (Refinement) `first_year` PubDate vs `pdat`; PubTator3 come sorgente entità/relazioni; alzare `per_year_cap`.
+1. **Potenza statistica → più corpus.** 29-38 hit rendono P@10 rumoroso (±0.1). Alzare `per_year_cap` / estendere l'ingest darebbe un verdetto robusto (l'open discovery è già pronto e riproducibile).
+2. **Copertura del grounded → sinonimi uniformi o PubTator3.** Il matching menzione→MeSH plain perde nomi formali (Treg, TNF-α). L'espansione entry-terms MeSH **uniforme** (già in `mesh_synonyms.py`, ma applicarla a *tutti* i descrittori, non solo ai B noti) o PubTator3 (ID normalizzati, zero match a stringhe) alzerebbe il segnale grounded.
+3. **SemMedDB** come `RelationSource` primaria → serve licenza UMLS.
+4. (Refinement minori) `first_year` PubDate vs `pdat`.
 
-Finché non si affronta il punto 2 (+ eventualmente 3), il verdetto resta FAIL e non si procede a S3/S4/S5.
+**Guardrail invariato:** qualunque ripresa resta time-sliced e grounded; mai far giudicare
+la plausibilità di un legame all'LLM (contaminazione).
 
 ## Note
 

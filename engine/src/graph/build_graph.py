@@ -17,12 +17,14 @@ qui serve solo il cammino A-B-C per il verdetto S1/S2.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 import networkx as nx
 
 from ingest.cache import Cache
+from relations.normalize import supported_descriptors
 
 from .mesh import descriptors
 
@@ -39,15 +41,31 @@ class _BStats:
     total_df: int = 0
 
 
-def build_corridor_graph(cache: Cache, config: dict[str, Any]) -> nx.Graph:
+def build_corridor_graph(
+    cache: Cache,
+    config: dict[str, Any],
+    *,
+    relations_by_pmid: dict[str, list[dict[str, Any]]] | None = None,
+    synonyms_of: Callable[[str], list[str]] | None = None,
+) -> nx.Graph:
     """Costruisce il grafo A-B-C. Attributi utili per discovery/time-slicing sui nodi B:
-    a_df, c_df, total_df, a_first_year, c_first_year."""
+    a_df, c_df, total_df, a_first_year, c_first_year.
+
+    Definizione dell'arco A-B / B-C (l'unica cosa che cambia tra i due modi):
+    - **co-occorrenza** (default, `relations_by_pmid=None`): B è ogni descrittore MeSH del
+      paper. È il grafo che ha FALLITO S2 (co-occorrenza nuda non batte la frequenza).
+    - **grounded** (`relations_by_pmid` fornito): B è solo un descrittore *relazionalmente
+      supportato*, cioè menzionato come soggetto/oggetto in una relazione estratta dall'LLM
+      da quell'abstract. Il time-slicing lavora sullo stesso spazio di nodi -> confronto pulito.
+    """
     corridor = config["corridor"]
     a_label = corridor["A"]["label"]
     c_label = corridor["C"]["label"]
     anchors: set[str] = set(corridor["A"].get("mesh_anchors", [])) | set(
         corridor["C"].get("mesh_anchors", [])
     )
+    grounded = relations_by_pmid is not None
+    edge_source = "relation" if grounded else "cooccur"
 
     a_pmids = cache.pmids_in_corridor("A")
     c_pmids = cache.pmids_in_corridor("C")
@@ -66,9 +84,11 @@ def build_corridor_graph(cache: Cache, config: dict[str, Any]) -> nx.Graph:
             continue
         total_papers += 1
         art = json.loads(r["raw_json"])
-        for desc in descriptors(art):
-            if desc in anchors:
-                continue
+        descs = {d for d in descriptors(art) if d not in anchors}
+        if relations_by_pmid is not None:
+            rels = relations_by_pmid.get(pmid, [])
+            descs = supported_descriptors(descs, rels, synonyms_of=synonyms_of)
+        for desc in descs:
             s = stats.setdefault(desc, _BStats())
             s.total_df += 1
             if in_a:
@@ -84,6 +104,7 @@ def build_corridor_graph(cache: Cache, config: dict[str, Any]) -> nx.Graph:
     g.add_node(NODE_A, kind="anchor", corridor="A", label=a_label, df=len(a_pmids))
     g.add_node(NODE_C, kind="anchor", corridor="C", label=c_label, df=len(c_pmids))
     g.graph["total_papers"] = total_papers
+    g.graph["mode"] = edge_source
 
     for desc, s in stats.items():
         a_df = len(s.a_pmids)
@@ -100,13 +121,13 @@ def build_corridor_graph(cache: Cache, config: dict[str, Any]) -> nx.Graph:
         )
         if a_df:
             g.add_edge(
-                NODE_A, desc, source="cooccur", weight=a_df,
+                NODE_A, desc, source=edge_source, weight=a_df,
                 pmids=s.a_pmids, years=sorted(s.a_years),
                 first_year=min(s.a_years) if s.a_years else None,
             )
         if c_df:
             g.add_edge(
-                desc, NODE_C, source="cooccur", weight=c_df,
+                desc, NODE_C, source=edge_source, weight=c_df,
                 pmids=s.c_pmids, years=sorted(s.c_years),
                 first_year=min(s.c_years) if s.c_years else None,
             )

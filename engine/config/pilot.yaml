@@ -55,9 +55,9 @@ ingest:
 # mai giudizio di plausibilità (anti-contaminazione del time-slicing).
 relations:
   provider: gemini
-  model: gemini-3.1-flash-lite      # PINNATO (2026-07-22) -> versione 3.1-flash-lite-05-2026.
+  model: gemini-3.1-flash-lite      # PINNATO (2026-07-23) -> versione 3.1-flash-lite-05-2026.
                                     # NON usare 'gemini-flash-lite-latest': è un alias mobile che
-                                    # è già driftato 3.1->3.5 tra il 2026-07-21 e il 2026-07-22
+                                    # è già driftato 3.1->3.5 tra il 2026-07-21 e il 2026-07-23
                                     # (verificato: stesso abstract, 6 triple con 3.1 vs 1 con 3.5).
                                     # Le 991 estrazioni del 2026-07-21 erano 3.1 (provate identiche
                                     # a questo pin) e sono state rietichettate in cache -> corpus
@@ -77,7 +77,9 @@ relations:
     rpm: 15                      # requests/minute (verificato)
     rpd: 500                     # requests/day (verificato) -> collo di bottiglia reale
     tpm: 250000                  # tokens/minute (verificato)
-  client_rpm: 12                 # throttle del client: sotto il limite RPM per margine di sicurezza
+  client_rpm: 60                 # throttle del client. PAID (billing attivo dal 2026-07-23): 60 rpm
+                                 # (1/sec), ben sotto il limite tier-1 -> RPD non più un vincolo.
+                                 # SU FREE-TIER rimettere 12 (limite RPM=15), altrimenti falsi stop.
 
 # Ranking dei B (S2/S3)
 ranking:

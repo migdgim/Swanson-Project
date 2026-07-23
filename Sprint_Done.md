@@ -63,4 +63,31 @@ estendere al corpus (leva per battere il baseline a frequenza, S2 = FAIL).
 
 ---
 
+## S2-rerun / S3 — Grafo relazionale + ri-esecuzione + open discovery ✅ (2026-07-23) — **PILOTA CHIUSO**
+
+**Obiettivo:** completare l'estrazione, costruire il grafo relazionale grounded, ri-eseguire
+S2 e verificare se il layer LLM batte finalmente la frequenza. Verdetto onesto atteso.
+
+**Estrazione completata (eseguita, non simulata):**
+- Modello **pinnato** `gemini-3.1-flash-lite` (`3.1-flash-lite-05-2026`). L'alias `-latest` era driftato 3.1→3.5 tra il 21 e il 23/07 → pin per coerenza del corpus multi-giorno. Le 991 estrazioni del 21/07 (3.1, provate identiche al pin) rietichettate in cache (backup `cache.sqlite.bak-prepin`).
+- Billing Google attivato dal committente (€10) → rimosso il collo di bottiglia RPD. Client throttle alzato a 60 rpm (paid).
+- **Copertura piena: 2397/2397 paper pre-cutoff (≤2021), 0 errori.** **8.920 relazioni** in cache (`llm_extractions`), 2373/2397 paper con ≥1 relazione. Costo effettivo: pochi centesimi.
+
+**Codice (nuovo/modificato):**
+- `graph/build_graph.py`: modalità **grounded** — arco A-B/B-C solo se B è descrittore *relazionalmente supportato* (via `relations/normalize.supported_descriptors`), stesso spazio nodi.
+- `validation/run_time_slicing.py`: flag `--relations {cooccur,grounded}`; grounded = segnale di ranking sui candidati di co-occorrenza (non filtro), ground-truth invariata.
+- `validation/time_slicing.py`: `OpenSlice` + `build_open_slices` + `evaluate_open_split`.
+- `validation/run_open_discovery.py`: runner **open discovery time-sliced** (candidato = mezzo-ponte; hit = chiusura del lato mancante post-cutoff). Task e verdetto **pre-registrati**.
+
+**Verdetti (eseguiti, TEST una volta sola, matching plain uniforme = niente p-hacking):**
+1. **Closed S2, grafo co-occorrenza** (baseline): FAIL — P@10 PMI 0.100 vs freq **0.800**.
+2. **Closed S2, grounding come segnale**: FAIL — grounded 0.000 vs freq **0.800**. Ground-truth ricca (86 hit). La frequenza domina *per tautologia* (hit N≥1 = persistenza dei frequenti).
+3. **Open discovery** (anti-tautologia): FAIL ma informativo — grounded **0.200** vs freq **0.300** vs random 0.000. Il reframe **abbatte la tautologia** (freq 0.800→0.300); il grounded mostra segnale **non casuale** ma **non superiore** alla frequenza. Verdetto **sotto-potenziato** (29-38 hit, P@10 ±0.1).
+
+**Conclusione onesta del pilota:** su questo corpus (campione 4061 paper) il layer relazionale LLM **non batte la frequenza** in modo dimostrabile. Il segnale grounded esiste ed è non-casuale; i suoi top candidati (Prebiotics, Bifidobacterium, Melanoma…) sono biologicamente sensati (osservazione, non metrica — guardrail rispettato). I limiti sono **noti e fixabili**: potenza statistica (più corpus) e copertura del matching menzione→MeSH (sinonimi uniformi / PubTator3). **Pilota chiuso qui per decisione del committente.**
+
+**Verifiche backend verdi:** `ruff` pulito, `mypy --strict` (7 file toccati), **21 test**.
+
+---
+
 *Sprint successivi da fare: vedi `Sprint.md`.*

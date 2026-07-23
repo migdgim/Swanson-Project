@@ -3,9 +3,13 @@
 > Sprint futuri e task da fare. Caricamento automatico a ogni sessione.
 > **Principio: 1 sprint = 1 sessione** (verticale, autonomamente testabile dal backend).
 > A sprint validato dal committente: marcare `[x]`, datare, spostare in `Sprint_Done.md`.
-> Ultimo aggiornamento: 2026-07-20.
+> Ultimo aggiornamento: 2026-07-23.
 
-**Stato:** **S0 completato e validato** (2026-07-20) — ingest del corpus pilota funzionante (4061 paper, 1990–2026, riproducibile offline). Dettaglio in `Sprint_Done.md`. Progetto Supabase **rinviato a S4** per il limite free-tier (2 progetti già occupati da `guestrace`/`firetrace`). Prossimo: **S1**. Decisioni ancora pendenti: richiesta UMLS (in parallelo), scelta modello LLM (in S1, dopo stima costo). Dettaglio in `ActualStatus.md`.
+**Stato: PILOTA CHIUSO (2026-07-23).** S0 ✅, S1 closed discovery ✅ (5/7), estrazione
+relazionale LLM completa ✅ (2397/2397), S2 ri-eseguito e open discovery ✅ — **verdetto
+onesto FAIL**: il layer relazionale non batte la frequenza su questo corpus. Dettaglio
+completo in `Sprint_Done.md`; leve per un'eventuale ripresa in `ActualStatus.md` → "Se si
+riprende". I task S3/S4/S5 sotto restano **non avviati** (dipendevano da un PASS di S2).
 
 ---
 
